@@ -1,0 +1,49 @@
+version: "3.8"
+services:
+  nacos:
+    image: nacos/nacos-server:${NACOS_VERSION}
+    container_name: nacos-standalone-mysql
+    env_file:
+      - ./nacos/nacos-standlone-mysql.env
+    volumes:
+      - ${CONTAINER_DATA_PATH}/nacos/logs/:/home/nacos/logs
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: always
+  mysql:
+    container_name: mysql
+    build:
+      context: .
+      dockerfile: ./mysql/Dockerfile
+    image: l020/mysql:${MYSQL_VERSION}
+    env_file:
+      - ./mysql/mysql.env
+    volumes:
+      - ${CONTAINER_DATA_PATH}/mysql/data:/var/lib/mysql
+      # - ${CONTAINER_DATA_PATH}/mysql/my.cnf:/etc/my.cnf
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+  redis:
+    container_name: redis-standalone
+    build:
+      context: .
+      dockerfile: ./redis/Dockerfile
+    image: l020/redis:${REDIS_VERSION}
+    env_file:
+      - ./redis/redis.env
+    sysctls: 
+      - net.core.somaxconn=1024
+    volumes:
+      - ${CONTAINER_DATA_PATH}/redis/data:/data
+      # - ${CONTAINER_DATA_PATH}/redis/redis.conf:/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
